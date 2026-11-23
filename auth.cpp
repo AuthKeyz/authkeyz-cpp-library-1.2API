@@ -58,6 +58,20 @@
 
 #define SHA256_HASH_SIZE 32
 
+static std::string url_encode(const std::string& value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex << std::uppercase;
+    for (unsigned char c : value) {
+        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+        } else {
+            escaped << '%' << std::setw(2) << static_cast<int>(c);
+        }
+    }
+    return escaped.str();
+}
+
 static std::string hexDecode(const std::string& hex);
 std::string get_str_between_two_str(const std::string& s, const std::string& start_delim, const std::string& stop_delim);
 bool constantTimeStringCompare(const char* str1, const char* str2, size_t length);
@@ -103,7 +117,7 @@ void AuthKeyz::api::init()
         XorStr("&ver=") + version +
         XorStr("&hash=") + hash +
         XorStr("&enckey=") + sentKey +
-        XorStr("&name=") + curl_easy_escape(curl, name.c_str(), 0) +
+        XorStr("&name=") + url_encode(name) +
         XorStr("&ownerid=") + ownerid;
 
     if (path != "" || !path.empty()) {
@@ -137,7 +151,7 @@ void AuthKeyz::api::init()
         thash = exec(("certutil -hashfile \"" + path + XorStr("\" MD5 | find /i /v \"md5\" | find /i /v \"certutil\"")).c_str());
 
         data += XorStr("&token=").c_str() + token;
-        data += XorStr("&thash=").c_str() + path;
+        data += XorStr("&thash=").c_str() + thash;
     }
     curl_easy_cleanup(curl);
 
@@ -221,8 +235,8 @@ void AuthKeyz::api::login(std::string username, std::string password)
     std::string hwid = utils::get_hwid();
     auto data =
         XorStr("type=login") +
-        XorStr("&username=") + username +
-        XorStr("&pass=") + password +
+        XorStr("&username=") + url_encode(username) +
+        XorStr("&pass=") + url_encode(password) +
         XorStr("&hwid=") + hwid +
         XorStr("&sessionid=") + sessionid +
         XorStr("&name=") + name +
@@ -277,7 +291,7 @@ bool AuthKeyz::api::chatsend(std::string message, std::string channel)
 
     auto data =
         XorStr("type=chatsend") +
-        XorStr("&message=") + message +
+        XorStr("&message=") + url_encode(message) +
         XorStr("&channel=") + channel +
         XorStr("&sessionid=") + sessionid +
         XorStr("&name=") + name +
@@ -757,9 +771,9 @@ void AuthKeyz::api::regstr(std::string username, std::string password, std::stri
     std::string hwid = utils::get_hwid();
     auto data =
         XorStr("type=register") +
-        XorStr("&username=") + username +
-        XorStr("&pass=") + password +
-        XorStr("&key=") + key +
+        XorStr("&username=") + url_encode(username) +
+        XorStr("&pass=") + url_encode(password) +
+        XorStr("&key=") + url_encode(key) +
         XorStr("&email=") + email +
         XorStr("&hwid=") + hwid +
         XorStr("&sessionid=") + sessionid +
@@ -798,8 +812,8 @@ void AuthKeyz::api::upgrade(std::string username, std::string key) {
 
     auto data =
         XorStr("type=upgrade") +
-        XorStr("&username=") + username +
-        XorStr("&key=") + key +
+        XorStr("&username=") + url_encode(username) +
+        XorStr("&key=") + url_encode(key) +
         XorStr("&sessionid=") + sessionid +
         XorStr("&name=") + name +
         XorStr("&ownerid=") + ownerid;
@@ -835,7 +849,7 @@ void AuthKeyz::api::license(std::string key) {
     std::string hwid = utils::get_hwid();
     auto data =
         XorStr("type=license") +
-        XorStr("&key=") + key +
+        XorStr("&key=") + url_encode(key) +
         XorStr("&hwid=") + hwid +
         XorStr("&sessionid=") + sessionid +
         XorStr("&name=") + name +
@@ -874,7 +888,7 @@ void AuthKeyz::api::setvar(std::string var, std::string vardata) {
     auto data =
         XorStr("type=setvar") +
         XorStr("&var=") + var +
-        XorStr("&data=") + vardata +
+        XorStr("&data=") + url_encode(vardata) +
         XorStr("&sessionid=") + sessionid +
         XorStr("&name=") + name +
         XorStr("&ownerid=") + ownerid;
@@ -1071,7 +1085,7 @@ void AuthKeyz::api::log(std::string message) {
     auto data =
         XorStr("type=log") +
         XorStr("&pcuser=") + UsernamePC +
-        XorStr("&message=") + message +
+        XorStr("&message=") + url_encode(message) +
         XorStr("&sessionid=") + sessionid +
         XorStr("&name=") + name +
         XorStr("&ownerid=") + ownerid;
@@ -1116,8 +1130,8 @@ std::string AuthKeyz::api::webhook(std::string id, std::string params, std::stri
     auto data =
         XorStr("type=webhook") +
         XorStr("&webid=") + id +
-        XorStr("&params=") + curl_easy_escape(curl, params.c_str(), 0) +
-        XorStr("&body=") + curl_easy_escape(curl, body.c_str(), 0) +
+        XorStr("&params=") + url_encode(params) +
+        XorStr("&body=") + url_encode(body) +
         XorStr("&conttype=") + contenttype +
         XorStr("&sessionid=") + sessionid +
         XorStr("&name=") + name +
@@ -1232,7 +1246,7 @@ void AuthKeyz::api::forgot(std::string username, std::string email)
 
     auto data =
         XorStr("type=forgot") +
-        XorStr("&username=") + username +
+        XorStr("&username=") + url_encode(username) +
         XorStr("&email=") + email +
         XorStr("&sessionid=") + sessionid +
         XorStr("&name=") + name +
@@ -1300,6 +1314,7 @@ std::string get_str_between_two_str(const std::string& s,
 }
 
 std::string AuthKeyz::api::req(std::string data, std::string url) {
+    signature.clear();
     CURL* curl = curl_easy_init();
     if (!curl)
         return XorStr("null");
@@ -1311,7 +1326,7 @@ std::string AuthKeyz::api::req(std::string data, std::string url) {
 
     //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L); used for debugging purposes
 
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 1);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
     curl_easy_setopt(curl, CURLOPT_NOPROXY, XorStr( "authkeyz.bond" ) );
 
@@ -1482,10 +1497,19 @@ std::string checksum()
 }
 
 bool constantTimeStringCompare(const char* str1, const char* str2, size_t length) {
+    if (str1 == nullptr || str2 == nullptr || length < 64) {
+        return false;
+    }
+    const size_t len1 = std::strlen(str1);
+    const size_t len2 = std::strlen(str2);
+    if (len1 != length || len2 != length) {
+        return false;
+    }
+
     int result = 0;
 
     for (size_t i = 0; i < length; ++i) {
-        result |= str1[i] ^ str2[i];
+        result |= static_cast<unsigned char>(str1[i]) ^ static_cast<unsigned char>(str2[i]);
     }
 
     return result == 0;
