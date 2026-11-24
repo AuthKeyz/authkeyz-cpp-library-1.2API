@@ -157,7 +157,7 @@ void AuthKeyz::api::init()
 
     auto response = req(data, url);
 
-    if (response == XorStr("AuthKeyz_Invalid") || response == XorStr("KeyAuth_Invalid")) {
+    if (response == XorStr("AuthKeyz_Invalid")) {
         MessageBoxA(0, XorStr("Application not found. Please copy strings directly from dashboard.").c_str(), NULL, MB_ICONERROR);
         exit(0);
     }
